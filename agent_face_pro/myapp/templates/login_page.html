@@ -1,0 +1,194 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>登录 - 个人助理与生活服务系统</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .login-container {
+            background: white;
+            padding: 50px 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 450px;
+        }
+
+        .login-header {
+            text-align: center;
+            margin-bottom: 40px;
+        }
+
+        .login-header h1 {
+            font-size: 28px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .login-header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .login-icon {
+            width: 80px;
+            height: 80px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            margin: 0 auto 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 40px;
+            color: white;
+        }
+
+        .form-group {
+            margin-bottom: 25px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 14px 18px;
+            border: 2px solid #e0e0e0;
+            border-radius: 12px;
+            font-size: 15px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #999;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .message {
+            display: block;
+            margin-top: 15px;
+            padding: 12px;
+            border-radius: 8px;
+            text-align: center;
+            font-size: 14px;
+        }
+
+        .message.error {
+            background: #fff2f0;
+            color: #ff4d4f;
+        }
+
+        .message.success {
+            background: #f0fff0;
+            color: #52c41a;
+        }
+
+        .login-links {
+            margin-top: 25px;
+            text-align: center;
+        }
+
+        .login-links a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-block;
+            margin: 8px 10px;
+            transition: color 0.3s;
+        }
+
+        .login-links a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .divider {
+            height: 1px;
+            background: #e0e0e0;
+            margin: 25px 0;
+        }
+    </style>
+</head>
+<body>
+<div class="login-container">
+    <div class="login-header">
+        <div class="login-icon">🤖</div>
+        <h1>个人助理与生活服务系统</h1>
+        <p>欢迎回来，请登录您的账号</p>
+    </div>
+    
+    <form method="post" action="/login/">
+        {% csrf_token %}
+        <div class="form-group">
+            <label>账号</label>
+            <input type="text" name="user" placeholder="请输入11位手机号">
+        </div>
+        <div class="form-group">
+            <label>密码</label>
+            <input type="password" name="pwd" placeholder="请输入6-20位密码">
+        </div>
+        <button type="submit" class="submit-btn">登 录</button>
+        {% if msg %}
+        <span class="message error">{{ msg }}</span>
+        {% endif %}
+    </form>
+    
+    <div class="divider"></div>
+    
+    <div class="login-links">
+        <a href="/collect_page/">人脸注册</a>
+        <a href="/detect_page/">人脸登录</a>
+    </div>
+</div>
+</body>
+</html>

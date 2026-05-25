@@ -1,0 +1,162 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人脸匹配 - 个人助理与生活服务系统</title>
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <script src="{% static 'js/vue.min.js' %}"></script>
+    <script src="{% static 'js/faceUtil.js' %}"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
+            width: 520px;
+            max-width: 95vw;
+            text-align: center;
+        }
+        .container h1 {
+            color: #333;
+            margin-bottom: 25px;
+            font-size: 24px;
+        }
+        #video {
+            margin-bottom: 20px;
+            width: 100%;
+            max-width: 480px;
+            margin-left: auto;
+            margin-right: auto;
+            overflow: hidden;
+            border-radius: 12px;
+            box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+        }
+        #video video, #video canvas {
+            width: 100% !important;
+            max-width: 480px !important;
+            height: auto !important;
+            display: block;
+            border-radius: 12px;
+        }
+        .submit-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            font-size: 16px;
+            cursor: pointer;
+            margin-top: 10px;
+            transition: transform 0.3s;
+        }
+        .submit-btn:hover {
+            transform: translateY(-2px);
+        }
+        #result {
+            margin-top: 20px;
+            padding: 15px;
+            border-radius: 10px;
+            font-size: 16px;
+            display: none;
+        }
+        .links {
+            margin-top: 20px;
+        }
+        .links a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            display: block;
+            margin: 8px 0;
+        }
+        .links a:hover {
+            text-decoration: underline;
+        }
+    </style>
+</head>
+<body>
+<div class="container" id="Myapp">
+    <h1> 人脸匹配登录</h1>
+
+    <div id="video"></div>
+
+    <button type="button" class="submit-btn" @click="faceDetect"> 匹配人脸登录</button>
+    
+    <div id="result"></div>
+    
+    <div class="links">
+        <a href="/collect_page/">还未注册？点击去注册</a>
+        <a href="/login/">今天不方便？账号密码登录</a>
+    </div>
+</div>
+<script>
+    new Vue({
+        el: '#Myapp',
+        data: {
+        },
+        methods: {
+            faceDetect: function () {
+                const code = faceUtile.getDecode();
+                if (!code) {
+                    alert("请先开启摄像头");
+                    return;
+                }
+                const param = {
+                    code: code
+                }
+                var self = this;
+                $.ajax({
+                    url: "/face_detect/",
+                    type: "post",
+                    contentType: "application/json",
+                    data: JSON.stringify(param),
+                    success: function(res){
+                        var resultDiv = $('#result');
+                        resultDiv.show();
+                        if(res.status == 200){
+                            resultDiv.css('background', '#f0fff0');
+                            resultDiv.css('color', '#52c41a');
+                            resultDiv.text('✓ ' + res.msg);
+                            setTimeout(function(){
+                                window.location.href = '/profile_page/?username=' + encodeURIComponent(res.username) + '&phone=' + encodeURIComponent(res.user_phone || '');
+                            }, 1000);
+                        } else {
+                            resultDiv.css('background', '#fff2f0');
+                            resultDiv.css('color', '#ff4d4f');
+                            resultDiv.text('✗ ' + res.msg);
+                        }
+                    },
+                    error: function(){
+                        var resultDiv = $('#result');
+                        resultDiv.show();
+                        resultDiv.css('background', '#fff2f0');
+                        resultDiv.css('color', '#ff4d4f');
+                        resultDiv.text('✗ 请求失败');
+                    }
+                })
+            }
+        }
+    })
+    faceUtile.openVideo("video")
+    faceUtile.width = 480
+    faceUtile.height = 360
+</script>
+</body>
+</html>

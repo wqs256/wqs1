@@ -1,0 +1,448 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>智能体对话 - 个人助理与生活服务系统</title>
+    <!-- 关键修复：使用公共CDN加载jQuery + Vue，确保一定能加载成功 -->
+    <!-- <script src="https://cdn.jsdelivr.net/npm/jquery@3.7.1/dist/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/vue@2.7.16/dist/vue.min.js"></script> -->
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <script src="{% static 'js/vue.min.js' %}"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        #app {
+            width: 100%;
+            max-width: 1400px;
+            height: 90vh;
+            background: white;
+            border-radius: 20px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
+            overflow: hidden;
+            display: flex;
+        }
+
+        #sidebar {
+            width: 300px;
+            background: linear-gradient(180deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            display: flex;
+            flex-direction: column;
+            padding: 20px;
+        }
+
+        #sidebar h1 {
+            font-size: 24px;
+            margin-bottom: 20px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            padding-bottom: 15px;
+            border-bottom: 2px solid rgba(255,255,255,0.2);
+        }
+
+        .sidebar-buttons {
+            margin-bottom: 20px;
+        }
+
+        .sidebar-buttons button {
+            width: 100%;
+            padding: 12px 20px;
+            border-radius: 15px;
+            border: none;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            cursor: pointer;
+            font-size: 16px;
+            margin-bottom: 10px;
+            transition: all 0.3s;
+        }
+
+        .sidebar-buttons button:hover {
+            background: rgba(255,255,255,0.3);
+            transform: translateY(-2px);
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+        }
+
+        .history-list-title {
+            font-size: 18px;
+            margin-bottom: 15px;
+            font-weight: 500;
+            opacity: 0.9;
+        }
+
+        .history-item {
+            padding: 12px 15px;
+            border-radius: 12px;
+            background: rgba(255,255,255,0.1);
+            margin-bottom: 10px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .history-item:hover {
+            background: rgba(255,255,255,0.2);
+            transform: translateX(5px);
+        }
+
+        .history-item.active {
+            background: rgba(255,255,255,0.3);
+            border: 2px solid rgba(255,255,255,0.5);
+        }
+
+        .history-icon {
+            width: 35px;
+            height: 35px;
+            border-radius: 50%;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 16px;
+            flex-shrink: 0;
+        }
+
+        .history-text {
+            flex: 1;
+            font-size: 14px;
+            color: white;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            white-space: nowrap;
+        }
+
+        .history-delete {
+            color: #ff6b6b;
+            font-size: 18px;
+            cursor: pointer;
+            opacity: 0.7;
+            transition: opacity 0.3s;
+        }
+
+        .history-delete:hover {
+            opacity: 1;
+        }
+
+        .history-empty {
+            text-align: center;
+            color: rgba(255,255,255,0.6);
+            padding: 30px;
+            font-size: 14px;
+        }
+
+        #main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f8f9fa;
+        }
+
+        #chat_box {
+            height: 600px;
+            overflow-y: auto;
+            padding: 30px;
+            background: #f8f9fa;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            padding: 15px;
+            font-size: 18px;
+        }
+
+        .message {
+            margin-bottom: 20px;
+        }
+
+        .message-user {
+            display: flex;
+            justify-content: flex-end;
+        }
+
+        .message-agent {
+            display: flex;
+            justify-content: flex-start;
+        }
+
+        .message-bubble {
+            max-width: 75%;
+            padding: 16px 22px;
+            border-radius: 20px;
+            word-wrap: break-word;
+            line-height: 1.8;
+            white-space: pre-wrap;
+            font-size: 16px;
+        }
+
+        .message-user .message-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 6px;
+        }
+
+        .message-agent .message-bubble {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+            border-bottom-left-radius: 6px;
+            box-shadow: 0 3px 8px rgba(0, 0, 0, 0.08);
+            white-space: pre-wrap;
+        }
+
+        .message-name {
+            font-size: 14px;
+            color: #999;
+            margin-bottom: 8px;
+            font-weight: 500;
+        }
+
+        .message-user .message-name {
+            text-align: right;
+            margin-right: 8px;
+        }
+
+        .message-agent .message-name {
+            text-align: left;
+            margin-left: 8px;
+        }
+
+        .input-container {
+            display: flex;
+            padding: 25px 30px;
+            background: white;
+            gap: 12px;
+        }
+
+        .input-container input {
+            flex: 1;
+            padding: 15px 22px;
+            border: 2px solid #e0e0e0;
+            border-radius: 30px;
+            outline: none;
+            font-size: 17px;
+        }
+
+        .input-container button {
+            padding: 15px 30px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 30px;
+            cursor: pointer;
+            font-size: 17px;
+            font-weight: 500;
+        }
+
+        button:disabled {
+            background: #ccc !important;
+            cursor: not-allowed !important;
+        }
+    </style>
+</head>
+
+<body>
+<div id="app">
+    <div id="sidebar">
+        <h1>🤖 智能体对话</h1>
+        <div class="sidebar-buttons">
+            <button @click="newChat">➕ 新建对话</button>
+        </div>
+        <div class="history-list">
+            <div class="history-list-title">📜 历史对话</div>
+            <div v-if="chatHistory.length === 0" class="history-empty">暂无历史会话</div>
+            <div v-for="(session, index) in chatHistory"
+                 :class="['history-item', currentSessionIndex === index ? 'active' : '']"
+                 @click="loadHistory(index)">
+                <div class="history-icon">💬</div>
+                <div class="history-text">[[ session.title ]]</div>
+                <span class="history-delete" @click.stop="deleteHistory(index)">✕</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="main-content">
+        <div id="chat_box">
+            <div v-for="msg in messages"
+                 :class="['message', msg.name === '用户' ? 'message-user' : 'message-agent']">
+                <div class="message-name">[[ msg.name ]]</div>
+                <div class="message-bubble" v-html="msg.text"></div>
+            </div>
+
+            <div class="loading" v-if="isLoading">智能体正在思考中...</div>
+        </div>
+
+        <div class="input-container">
+            <input
+                type="text"
+                v-model="userInput"
+                @keyup.enter="sendMsg"
+                placeholder="请输入您的问题..."
+            >
+            <button @click="sendMsg" :disabled="!userInput.trim() || isLoading">发送</button>
+        </div>
+    </div>
+</div>
+
+<script>
+$(function(){
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: "#app",
+        data: {
+            messages: [],
+            userInput: "",
+            isLoading: false,
+            chatHistory: [],
+            currentSessionIndex: -1
+        },
+        created() {
+            const saved = localStorage.getItem("chatHistoryList");
+            if (saved) {
+                this.chatHistory = JSON.parse(saved);
+            }
+        },
+        methods: {
+            cleanToolData(text) {
+                if (!text) return '';
+                if (text.includes("'type': 'text'") && text.includes("'id': 'lc_")) {
+                    return '';
+                }
+                if (text.includes('"type": "text"') && text.includes('"id": "lc_')) {
+                    return '';
+                }
+                const pattern = /\[\{[^]]*?'type':\s*'text'[^]]*?'id':\s*'lc_[^']*'[^]]*?\}\]/gs;
+                let cleaned = text.replace(pattern, '');
+                cleaned = cleaned.replace(/\[\{[^]]*?"type":\s*"text"[^]]*?"id":\s*"lc_[^"]*"[^]]*?\}\]/gs, '');
+                return cleaned.trim();
+            },
+
+            async sendMsg() {
+                if (this.userInput.trim() === "" || this.isLoading) return;
+
+                const question = this.userInput.trim();
+                this.userInput = "";
+
+                this.messages.push({ name: "用户", text: question });
+                this.isLoading = true;
+
+                const agentMsg = { name: "智能体", text: "" };
+                this.messages.push(agentMsg);
+
+                try {
+                    const url = `/chat_agent/?q=` + encodeURIComponent(question);
+                    const es = new EventSource(url);
+
+                    es.onmessage = (event) => {
+                        const data = event.data;
+                        if (data === '[DONE]') {
+                            es.close();
+                            this.isLoading = false;
+                            this.saveNewSession();
+                            return;
+                        }
+                        const cleanedData = this.cleanToolData(data || '');
+                        if (cleanedData) {
+                            agentMsg.text += cleanedData;
+                            this.$nextTick(() => {
+                                const box = document.getElementById('chat_box');
+                                box.scrollTop = box.scrollHeight;
+                            });
+                        }
+                    };
+
+                    es.onerror = (err) => {
+                        console.log("流已正常结束");
+                        es.close();
+                        this.isLoading = false;
+                    };
+
+                    es.onclose = () => {
+                        this.isLoading = false;
+                    };
+
+                } catch (e) {
+                    agentMsg.text = "连接出错：" + e.message;
+                    this.isLoading = false;
+                }
+            },
+
+            saveNewSession() {
+                if (this.messages.length === 0) return;
+                const first = this.messages.find(m => m.name === "用户");
+                if (!first) return;
+
+                let title = first.text.length > 20 ? first.text.slice(0,20)+"..." : first.text;
+                const newSession = {
+                    title: title,
+                    messages: [...this.messages],
+                    id: Date.now()
+                };
+                this.chatHistory.unshift(newSession);
+                this.currentSessionIndex = 0;
+
+                if (this.chatHistory.length > 10) this.chatHistory.pop();
+                localStorage.setItem("chatHistoryList", JSON.stringify(this.chatHistory));
+            },
+
+            toggleHistoryModal() {
+                this.showHistoryModal = !this.showHistoryModal;
+            },
+
+            loadHistory(index) {
+                this.messages = [...this.chatHistory[index].messages];
+                this.currentSessionIndex = index;
+                this.$nextTick(() => {
+                    const box = document.getElementById('chat_box');
+                    box.scrollTop = box.scrollHeight;
+                });
+            },
+
+            deleteHistory(index) {
+                if (confirm("确定删除？")) {
+                    this.chatHistory.splice(index, 1);
+                    if (this.currentSessionIndex === index) {
+                        this.messages = [];
+                        this.currentSessionIndex = -1;
+                    } else if (this.currentSessionIndex > index) {
+                        this.currentSessionIndex--;
+                    }
+                    localStorage.setItem("chatHistoryList", JSON.stringify(this.chatHistory));
+                }
+            },
+
+            newChat() {
+                if (this.messages.length > 0 && !confirm("确定新建对话？当前会自动保存")) return;
+                this.messages = [];
+                this.currentSessionIndex = -1;
+            }
+        }
+    })
+})
+</script>
+</body>
+</html>

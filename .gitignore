@@ -1,0 +1,32 @@
+# Python
+__pycache__/
+*.py[cod]
+
+# Virtual Env
+venv/
+env/
+
+# Django
+db.sqlite3
+media/
+uploads/
+
+# IDE
+.idea/
+.vscode/
+
+# Environment
+.env
+
+# AI / Model
+models/
+*.pt
+*.pth
+*.bin
+
+# Node
+node_modules/
+package-lock.json
+
+# OS
+.DS_Store

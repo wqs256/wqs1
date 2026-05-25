@@ -1,0 +1,2544 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>个人助理与生活服务系统</title>
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <script src="{% static 'js/vue.min.js' %}"></script>
+    <script src="{% static 'js/marked.min.js' %}"></script>
+    <script src="https://cdn.jsdelivr.net/npm/echarts@5.5.0/dist/echarts.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            overflow: hidden;
+        }
+
+        #app {
+            display: flex;
+            height: 100vh;
+        }
+
+        .sidebar {
+            width: 240px;
+            background: #1e1e2e;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.2);
+            flex-shrink: 0;
+        }
+
+        .sidebar-header {
+            padding: 16px;
+            border-bottom: 1px solid #3a3a4a;
+        }
+
+        .sidebar-header h2 {
+            font-size: 16px;
+            margin-bottom: 12px;
+            color: #a78bfa;
+        }
+
+        .new-chat-btn {
+            width: 100%;
+            padding: 12px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 10px;
+            cursor: pointer;
+            font-size: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 8px;
+            transition: transform 0.2s;
+        }
+
+        .new-chat-btn:hover {
+            transform: scale(1.02);
+        }
+
+        .history-list {
+            flex: 1;
+            overflow-y: auto;
+            padding: 10px;
+        }
+
+        .history-item {
+            padding: 12px 15px;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            cursor: pointer;
+            transition: background 0.2s;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .history-item:hover {
+            background: #3a3a4a;
+        }
+
+        .history-item.active {
+            background: #4a4a5a;
+        }
+
+        .history-item-title {
+            font-size: 13px;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+            flex: 1;
+        }
+
+        .history-item-delete {
+            color: #ff6b6b;
+            cursor: pointer;
+            padding: 0 5px;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .history-item:hover .history-item-delete {
+            opacity: 1;
+        }
+
+        .main-content {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            background: #f5f5f5;
+            overflow: hidden;
+        }
+
+        .top-bar {
+            background: white;
+            padding: 12px 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+            flex-shrink: 0;
+        }
+
+        .top-bar h1 {
+            font-size: 18px;
+            color: #333;
+        }
+
+        .top-bar-right {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .username {
+            font-size: 14px;
+            color: #667eea;
+            font-weight: 500;
+        }
+
+        .profile-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 13px;
+            margin-right: 10px;
+        }
+
+        .logout-btn {
+            padding: 8px 16px;
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            cursor: pointer;
+            font-size: 13px;
+        }
+
+        .nav-tabs {
+            display: flex;
+            gap: 6px;
+            padding: 10px 20px;
+            background: white;
+            border-bottom: 1px solid #e0e0e0;
+            overflow-x: auto;
+            flex-shrink: 0;
+        }
+
+        .nav-tab {
+            padding: 8px 14px;
+            background: #f0f0f0;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 13px;
+            font-weight: 500;
+            color: #666;
+            transition: all 0.3s;
+            white-space: nowrap;
+        }
+
+        .nav-tab:hover {
+            background: #e0e0e0;
+        }
+
+        .nav-tab.active {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .content-panel {
+            flex: 1;
+            overflow: hidden;
+            padding: 15px;
+            display: flex;
+            flex-direction: column;
+        }
+
+        .panel-inner {
+            background: white;
+            border-radius: 12px;
+            padding: 20px;
+            box-shadow: 0 2px 15px rgba(0, 0, 0, 0.08);
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .panel-title {
+            font-size: 16px;
+            color: #333;
+            margin-bottom: 15px;
+            padding-bottom: 10px;
+            border-bottom: 2px solid #f0f0f0;
+            flex-shrink: 0;
+        }
+
+        .form-group {
+            margin-bottom: 15px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 6px;
+            color: #555;
+            font-size: 13px;
+        }
+
+        .form-group input,
+        .form-group textarea,
+        .form-group select {
+            width: 100%;
+            padding: 10px 12px;
+            border: 2px solid #e0e0e0;
+            border-radius: 8px;
+            font-size: 14px;
+            outline: none;
+        }
+
+        .form-group input:focus,
+        .form-group textarea:focus,
+        .form-group select:focus {
+            border-color: #667eea;
+        }
+
+        .btn {
+            padding: 10px 20px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .btn-danger {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a24 100%);
+            color: white;
+        }
+
+        .btn-sm {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+
+        .list-item {
+            padding: 12px;
+            border: 1px solid #e0e0e0;
+            border-radius: 8px;
+            margin-bottom: 8px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .list-item:hover {
+            background: #f8f9fa;
+        }
+
+        .list-item-info h4 {
+            color: #333;
+            margin-bottom: 4px;
+            font-size: 14px;
+        }
+
+        .list-item-info p {
+            color: #666;
+            font-size: 12px;
+        }
+
+        .list-item-actions {
+            display: flex;
+            gap: 6px;
+        }
+
+        .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+            gap: 12px;
+            margin-bottom: 20px;
+        }
+
+        .stat-card {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 15px;
+            border-radius: 12px;
+            text-align: center;
+        }
+
+        .stat-expense {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        }
+
+        .stat-income {
+            background: linear-gradient(135deg, #51cf66 0%, #40c057 100%);
+        }
+
+        .stat-balance.positive {
+            background: linear-gradient(135deg, #339af0 0%, #228be6 100%);
+        }
+
+        .stat-balance.negative {
+            background: linear-gradient(135deg, #ff6b6b 0%, #ee5a52 100%);
+        }
+
+        .stat-card h3 {
+            font-size: 22px;
+            margin-bottom: 4px;
+        }
+
+        .stat-card p {
+            font-size: 12px;
+            opacity: 0.9;
+        }
+
+        .income-type-toggle {
+            display: flex;
+            gap: 10px;
+        }
+
+        .btn-toggle {
+            flex: 1;
+            padding: 10px;
+            border: 2px solid #667eea;
+            background: white;
+            color: #667eea;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+            transition: all 0.3s;
+        }
+
+        .btn-toggle.active {
+            background: #667eea;
+            color: white;
+        }
+
+        .list-item.income-item {
+            border-left: 4px solid #51cf66;
+        }
+
+        .amount-sign {
+            font-weight: 600;
+        }
+
+        .amount-sign.income-sign {
+            color: #51cf66;
+        }
+
+        .amount-sign.expense-sign {
+            color: #ff6b6b;
+        }
+
+        .chat-box {
+            flex: 1;
+            overflow-y: auto;
+            padding: 15px;
+            background: #f8f9fa;
+            border-radius: 10px;
+            margin-bottom: 12px;
+            min-height: 0;
+        }
+
+        .chat-message {
+            margin-bottom: 12px;
+        }
+
+        .chat-message.user {
+            text-align: right;
+        }
+
+        .chat-message.assistant {
+            text-align: left;
+        }
+
+        .chat-bubble {
+            display: inline-block;
+            max-width: 80%;
+            padding: 10px 15px;
+            border-radius: 12px;
+            text-align: left;
+            font-size: 14px;
+            line-height: 1.5;
+        }
+
+        .chat-message.user .chat-bubble {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .chat-message.assistant .chat-bubble {
+            background: white;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+
+        .chat-bubble h1, .chat-bubble h2, .chat-bubble h3 {
+            margin: 10px 0 5px 0;
+        }
+
+        .chat-bubble p {
+            margin: 5px 0;
+        }
+
+        .chat-bubble ul, .chat-bubble ol {
+            margin: 5px 0;
+            padding-left: 20px;
+        }
+
+        .chat-bubble code {
+            background: #f0f0f0;
+            padding: 2px 5px;
+            border-radius: 3px;
+            font-size: 12px;
+        }
+
+        .chat-bubble pre {
+            background: #2d2d2d;
+            color: #f8f8f2;
+            padding: 10px;
+            border-radius: 5px;
+            overflow-x: auto;
+        }
+
+        .chat-bubble pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+
+        .chat-input {
+            display: flex;
+            gap: 10px;
+            flex-shrink: 0;
+            padding-top: 12px;
+            border-top: 1px solid #f0f0f0;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 12px 16px;
+            border: 2px solid #e0e0e0;
+            border-radius: 25px;
+            outline: none;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-input .btn-primary {
+            width: auto;
+            padding: 12px 30px;
+            border-radius: 25px;
+            white-space: nowrap;
+        }
+
+        .empty-state {
+            text-align: center;
+            padding: 30px;
+            color: #999;
+        }
+
+        .ticket-card {
+            background: #f8f9fa;
+            border-radius: 10px;
+            padding: 12px;
+            margin-bottom: 8px;
+            border-left: 4px solid #667eea;
+        }
+
+        .ticket-card h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .ticket-info {
+            display: flex;
+            justify-content: space-between;
+            flex-wrap: wrap;
+            gap: 8px;
+        }
+
+        .ticket-info span {
+            font-size: 12px;
+            color: #666;
+        }
+
+        .ticket-price {
+            font-size: 16px;
+            color: #ff6b6b;
+            font-weight: bold;
+        }
+
+        .category-tag {
+            display: inline-block;
+            padding: 3px 8px;
+            border-radius: 12px;
+            font-size: 11px;
+            background: #e0e0e0;
+            color: #666;
+        }
+
+        .translate-result {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 10px;
+            margin-top: 12px;
+        }
+
+        .translate-result h4 {
+            color: #667eea;
+            margin-bottom: 8px;
+            font-size: 14px;
+        }
+
+        .translate-result p {
+            font-size: 14px;
+            line-height: 1.6;
+        }
+
+        .loading {
+            text-align: center;
+            color: #667eea;
+            padding: 15px;
+        }
+
+        .form-row {
+            display: flex;
+            gap: 15px;
+        }
+
+        .form-row .form-group {
+            flex: 1;
+        }
+
+        .two-col {
+            display: flex;
+            gap: 20px;
+        }
+
+        .two-col > div {
+            flex: 1;
+        }
+
+        .section-title {
+            font-size: 15px;
+            color: #667eea;
+            margin-bottom: 12px;
+            font-weight: 600;
+        }
+
+        .form-group {
+            margin-bottom: 12px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 5px;
+            font-size: 13px;
+            color: #555;
+            font-weight: 500;
+        }
+
+        .form-group input,
+        .form-group select,
+        .form-group textarea {
+            width: 100%;
+            padding: 8px 12px;
+            border: 1px solid #ddd;
+            border-radius: 6px;
+            font-size: 14px;
+            transition: border-color 0.3s;
+        }
+
+        .form-group input:focus,
+        .form-group select:focus,
+        .form-group textarea:focus {
+            outline: none;
+            border-color: #667eea;
+        }
+
+        .btn-primary {
+            width: 100%;
+            padding: 10px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 8px;
+            font-size: 14px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .btn-primary:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .btn-send {
+            width: auto !important;
+            min-width: 100px;
+            padding: 12px 28px !important;
+            border-radius: 25px !important;
+            white-space: nowrap;
+            font-weight: 600;
+            letter-spacing: 1px;
+        }
+
+        .btn-secondary {
+            background: white;
+            color: #667eea;
+            border: 2px solid #667eea;
+            font-size: 13px;
+            font-weight: 500;
+            cursor: pointer;
+            transition: all 0.3s;
+        }
+
+        .btn-secondary:hover {
+            background: #667eea;
+            color: white;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 8px rgba(102, 126, 234, 0.3);
+        }
+    </style>
+</head>
+<body>
+<div id="app">
+    <!-- 左侧边栏 -->
+    <div class="sidebar">
+        <div class="sidebar-header">
+            <h2>💬 智能问答</h2>
+            <button class="new-chat-btn" @click="newQAChat">
+                <span>+</span> 新建对话
+            </button>
+        </div>
+        <div class="history-list">
+            <div v-for="(item, index) in qaHistory" 
+                 :key="index"
+                 :class="['history-item', {active: currentQAIndex === index}]"
+                 @click="loadQAChat(index)">
+                <span class="history-item-title">[[ item.title ]]</span>
+                <span class="history-item-delete" @click.stop="deleteQAChat(index)">✕</span>
+            </div>
+            <div v-if="qaHistory.length === 0" class="empty-state" style="padding: 20px; color: #888;">
+                <p>暂无历史对话</p>
+            </div>
+        </div>
+    </div>
+
+    <!-- 主内容区 -->
+    <div class="main-content">
+        <div class="top-bar">
+            <h1>🤖 个人助理与生活服务系统</h1>
+            <div class="top-bar-right">
+                <span class="username">👤 [[ username ]]</span>
+                <button class="profile-btn" onclick="window.location.href='/profile_page/?username={{ username }}&phone={{ user_phone }}'">个人主页</button>
+                <button class="logout-btn" onclick="window.location.href='/login/'">退出</button>
+            </div>
+        </div>
+
+        <div class="nav-tabs">
+            <button class="nav-tab" :class="{active: currentTab === 'qa'}" @click="currentTab = 'qa'">💬 智能问答</button>
+            <button class="nav-tab" :class="{active: currentTab === 'schedule'}" @click="currentTab = 'schedule'; loadSchedules()">📅 日程管理</button>
+            <button class="nav-tab" :class="{active: currentTab === 'expense'}" @click="currentTab = 'expense'; loadExpenses()">💰 记账助手</button>
+            <button class="nav-tab" :class="{active: currentTab === 'translate'}" @click="currentTab = 'translate'">🌐 翻译助手</button>
+            <button class="nav-tab" :class="{active: currentTab === 'train'}" @click="currentTab = 'train'">🚄 火车票</button>
+            <button class="nav-tab" :class="{active: currentTab === 'flight'}" @click="currentTab = 'flight'">✈️ 机票</button>
+            <button class="nav-tab" :class="{active: currentTab === 'analysis'}" @click="currentTab = 'analysis'; initDataAnalysis()">📊 数据分析</button>
+        </div>
+
+        <div class="content-panel">
+            <!-- 智能问答 -->
+            <div v-if="currentTab === 'qa'" style="display: flex; flex-direction: column; height: 100%;">
+                <div class="panel-inner" style="padding: 15px;">
+                    <h2 class="panel-title" style="margin-bottom: 10px; padding-bottom: 8px;">💬 智能问答</h2>
+                    <div class="chat-box" id="qaChatBox" style="flex: 1; min-height: 0;">
+                        <div v-if="currentQAMessages.length === 0" class="empty-state">
+                            <p>开始新的对话吧！</p>
+                        </div>
+                        <div v-for="(msg, idx) in currentQAMessages" :key="idx" :class="['chat-message', msg.type]">
+                            <div class="chat-bubble">
+                                <div v-html="msg.type === 'user' ? msg.text : renderMarkdown(msg.text)"></div>
+                                <div v-if="msg.chart" :id="'qaChart-' + idx" class="qa-chart-container" style="width: 100%; height: 350px; margin-top: 12px;"></div>
+                            </div>
+                        </div>
+                        <div class="loading" v-if="qaLoading">智能助理正在思考中...</div>
+                    </div>
+                    <div class="chat-input">
+                        <input type="text" v-model="qaInput" @keyup.enter="sendQA" placeholder="请输入您的问题...">
+                        <button class="btn btn-primary btn-send" @click="sendQA" :disabled="qaLoading"> 发送</button>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 日程管理 -->
+            <div v-if="currentTab === 'schedule'" style="display: flex; flex-direction: column; height: 100%;">
+                <div class="panel-inner" style="padding: 20px; display: flex; flex-direction: column; overflow: hidden;">
+                    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px; flex-shrink: 0;">
+                        <h2 class="panel-title" style="margin: 0; font-size: 20px;">📅 日程管理</h2>
+                        <button class="btn btn-secondary" @click="toggleHistoryView" style="margin-left: 15px; padding: 8px 20px; border-radius: 20px;">
+                            [[ showHistory ? ' 查看未来日程' : ' 查看历史日程' ]]
+                        </button>
+                    </div>
+                    <div style="flex: 1; overflow: hidden; display: flex; gap: 25px;">
+                        <div style="width: 380px; flex-shrink: 0; overflow-y: auto; padding-right: 10px;">
+                            <h3 class="section-title" style="font-size: 16px; margin-bottom: 15px;">添加日程</h3>
+                            <div class="form-group">
+                                <label>日程标题</label>
+                                <input type="text" v-model="scheduleForm.title" placeholder="请输入日程标题">
+                            </div>
+                            <div class="form-group">
+                                <label>日程内容</label>
+                                <textarea v-model="scheduleForm.content" rows="3" placeholder="请输入日程内容"></textarea>
+                            </div>
+                            <div class="form-group">
+                                <label>开始时间</label>
+                                <input type="datetime-local" v-model="scheduleForm.start_time">
+                            </div>
+                            <div class="form-group">
+                                <label>结束时间（可选）</label>
+                                <input type="datetime-local" v-model="scheduleForm.end_time">
+                            </div>
+                            <div class="form-group">
+                                <label>提醒方式</label>
+                                <select v-model="scheduleForm.reminder_type">
+                                    <option value="message">消息提醒</option>
+                                    <option value="voice">语音提醒</option>
+                                </select>
+                            </div>
+                            <button class="btn btn-primary" @click="addSchedule" style="margin-top: 10px;">添加日程</button>
+                        </div>
+                        <div style="flex: 1; overflow-y: auto; min-height: 0; border-left: 2px solid #e0e0e0; padding-left: 25px;">
+                            <h3 class="section-title" style="font-size: 16px; margin-bottom: 15px;">[[ showHistory ? '历史日程' : '我的日程' ]]</h3>
+                            <div v-if="schedules.length === 0" class="empty-state">
+                                <p>[[ showHistory ? '暂无历史日程' : '暂无日程安排' ]]</p>
+                            </div>
+                            <div v-for="item in schedules" :key="item.id" class="list-item">
+                                <div class="list-item-info">
+                                    <h4>[[ item.title ]]</h4>
+                                    <p>📅 [[ item.start_time ]] ~ [[ item.end_time || '未设置' ]]</p>
+                                    <p v-if="item.content">📝 [[ item.content ]]</p>
+                                </div>
+                                <div class="list-item-actions">
+                                    <button class="btn btn-danger btn-sm" @click="deleteSchedule(item.id)">删除</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 记账助手 -->
+            <div v-if="currentTab === 'expense'" style="display: flex; flex-direction: column; height: 100%;">
+                <div class="panel-inner" style="padding: 20px; display: flex; flex-direction: column; overflow: hidden;">
+                    <h2 class="panel-title" style="margin-bottom: 15px; padding-bottom: 10px; flex-shrink: 0; font-size: 20px;"> 记账助手</h2>
+                    <div class="stats-grid" style="flex-shrink: 0; margin-bottom: 20px;">
+                        <div class="stat-card stat-expense">
+                            <h3>¥[[ expenseStats.total_expense || 0 ]]</h3>
+                            <p>本月总支出</p>
+                        </div>
+                        <div class="stat-card stat-income">
+                            <h3>¥[[ expenseStats.total_income || 0 ]]</h3>
+                            <p>本月总收入</p>
+                        </div>
+                        <div class="stat-card stat-balance" :class="{'positive': isBalancePositive, 'negative': !isBalancePositive}">
+                            <h3>¥[[ balanceAmount.toFixed(2) ]]</h3>
+                            <p>结余</p>
+                        </div>
+                    </div>
+                    <div style="flex: 1; overflow: hidden; display: flex; gap: 25px;">
+                        <div style="width: 350px; flex-shrink: 0; overflow-y: auto; padding-right: 10px;">
+                            <h3 class="section-title" style="font-size: 16px; margin-bottom: 15px;">记一笔</h3>
+                            <div class="form-group">
+                                <label>类型</label>
+                                <div class="income-type-toggle">
+                                    <button class="btn-toggle" :class="{active: expenseForm.income_type === 'expense'}" @click="expenseForm.income_type = 'expense'">支出</button>
+                                    <button class="btn-toggle" :class="{active: expenseForm.income_type === 'income'}" @click="expenseForm.income_type = 'income'">收入</button>
+                                </div>
+                            </div>
+                            <div class="form-group">
+                                <label>金额</label>
+                                <input type="number" v-model="expenseForm.amount" placeholder="请输入金额" step="0.01">
+                            </div>
+                            <div class="form-group">
+                                <label>分类</label>
+                                <select v-model="expenseForm.category">
+                                    <option v-for="cat in currentCategories" :key="cat" :value="cat">[[ cat ]]</option>
+                                </select>
+                            </div>
+                            <div class="form-group">
+                                <label>描述</label>
+                                <input type="text" v-model="expenseForm.description" placeholder="请输入描述">
+                            </div>
+                            <div class="form-group">
+                                <label>日期</label>
+                                <input type="date" v-model="expenseForm.expense_date">
+                            </div>
+                            <button class="btn btn-primary" @click="addExpense" style="margin-top: 10px;">[[ expenseForm.income_type === 'income' ? '记录收入' : '记账' ]]</button>
+                        </div>
+                        <div style="flex: 1; overflow-y: auto; min-height: 0; border-left: 2px solid #e0e0e0; padding-left: 25px;">
+                            <h3 class="section-title" style="font-size: 16px; margin-bottom: 15px;">收支记录</h3>
+                            <div v-if="expenses.length === 0" class="empty-state">
+                                <p>暂无记录</p>
+                            </div>
+                            <div v-for="item in expenses" :key="item.id" class="list-item" :class="{'income-item': item.income_type === 'income'}">
+                                <div class="list-item-info">
+                                    <h4>
+                                        <span class="amount-sign" :class="{'income-sign': item.income_type === 'income', 'expense-sign': item.income_type === 'expense'}">
+                                            [[ item.income_type === 'income' ? '+' : '-' ]]¥[[ item.amount ]]
+                                        </span>
+                                        <span class="category-tag">[[ item.category ]]</span>
+                                    </h4>
+                                    <p>📅 [[ item.expense_date ]]</p>
+                                    <p v-if="item.description">📝 [[ item.description ]]</p>
+                                </div>
+                                <div class="list-item-actions">
+                                    <button class="btn btn-danger btn-sm" @click="deleteExpense(item.id)">删除</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 翻译助手 -->
+            <div v-if="currentTab === 'translate'">
+                <div class="panel-inner">
+                    <h2 class="panel-title">🌐 翻译助手</h2>
+                    <div class="form-group">
+                        <label>原文</label>
+                        <textarea v-model="translateForm.text" rows="4" placeholder="请输入要翻译的文本"></textarea>
+                    </div>
+                    <div class="form-row">
+                        <div class="form-group">
+                            <label>源语言</label>
+                            <select v-model="translateForm.source_lang">
+                                <option value="zh">中文</option>
+                                <option value="en">英文</option>
+                                <option value="ja">日文</option>
+                                <option value="ko">韩文</option>
+                                <option value="fr">法文</option>
+                                <option value="de">德文</option>
+                            </select>
+                        </div>
+                        <div class="form-group">
+                            <label>目标语言</label>
+                            <select v-model="translateForm.target_lang">
+                                <option value="en">英文</option>
+                                <option value="zh">中文</option>
+                                <option value="ja">日文</option>
+                                <option value="ko">韩文</option>
+                                <option value="fr">法文</option>
+                                <option value="de">德文</option>
+                            </select>
+                        </div>
+                    </div>
+                    <button class="btn btn-primary" @click="doTranslate" :disabled="translateLoading">翻译</button>
+                    <div v-if="translateResult" class="translate-result">
+                        <h4>翻译结果</h4>
+                        <p>[[ translateResult ]]</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 火车票查询 -->
+            <div v-if="currentTab === 'train'" style="display: flex; flex-direction: column; height: 100%;">
+                <div class="panel-inner" style="padding: 15px; display: flex; flex-direction: column; overflow: hidden;">
+                    <h2 class="panel-title" style="margin-bottom: 10px; padding-bottom: 8px; flex-shrink: 0;">🚄 火车票查询</h2>
+                    <div class="form-row" style="align-items: flex-end; flex-shrink: 0; margin-bottom: 10px;">
+                        <div class="form-group">
+                            <label>出发站</label>
+                            <input type="text" v-model="trainForm.from" placeholder="如：贵阳">
+                        </div>
+                        <div class="form-group">
+                            <label>到达站</label>
+                            <input type="text" v-model="trainForm.to" placeholder="如：成都">
+                        </div>
+                        <div class="form-group">
+                            <label>出发日期</label>
+                            <input type="date" v-model="trainForm.date">
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-primary" @click="searchTrain" :disabled="trainLoading" style="width: 100%;">查询</button>
+                        </div>
+                    </div>
+                    <div v-if="trainLoading" class="loading" style="flex-shrink: 0;">正在查询火车票信息...</div>
+                    <div v-if="trainMsg" style="padding: 10px; color: #666; margin-bottom: 10px; flex-shrink: 0;">[[ trainMsg ]]</div>
+                    <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                        <div v-for="ticket in trainTickets" :key="ticket.train_no" class="ticket-card" style="padding: 0; margin-bottom: 12px; border: 1px solid #e8e8e8; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                            <div style="background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); padding: 12px 15px; border-radius: 8px 8px 0 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <span style="font-size: 18px; font-weight: bold; color: #fff;">[[ ticket.train_no ]]</span>
+                                    <span style="font-size: 13px; color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px;">[[ ticket.date || '今日' ]]</span>
+                                </div>
+                            </div>
+                            <div style="padding: 15px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #e8e8e8;">
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 20px; font-weight: bold; color: #333;">[[ ticket.start_time ]]</div>
+                                        <div style="font-size: 13px; color: #666; margin-top: 4px;">[[ ticket.from ]]</div>
+                                    </div>
+                                    <div style="flex: 1; padding: 0 15px; text-align: center;">
+                                        <div style="font-size: 12px; color: #999;">[[ ticket.duration ]]</div>
+                                        <div style="height: 2px; background: linear-gradient(to right, #667eea, #764ba2); margin: 6px 0;"></div>
+                                        <div style="font-size: 11px; color: #999;">直达</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 20px; font-weight: bold; color: #333;">[[ ticket.arrive_time ]]</div>
+                                        <div style="font-size: 13px; color: #666; margin-top: 4px;">[[ ticket.to ]]</div>
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 12px;">
+                                    <div style="font-size: 12px; color: #999; margin-bottom: 8px;">席别票价</div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        <span v-for="seat in ticket.seat_types" :key="seat.type" style="display: inline-flex; align-items: center; padding: 6px 12px; background: #f8f9fa; border-radius: 6px; font-size: 13px;">
+                                            <span style="color: #666;">[[ seat.type ]]</span>
+                                            <span style="margin-left: 6px; color: #e74c3c; font-weight: bold;">¥[[ seat.price ]]</span>
+                                            <span style="margin-left: 4px; color: #999; font-size: 12px;">([[ seat.available ]])</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" style="width: 100%; padding: 10px;" @click="bookTicket(ticket)">立即订购</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 机票查询 -->
+            <div v-if="currentTab === 'flight'" style="display: flex; flex-direction: column; height: 100%;">
+                <div class="panel-inner" style="padding: 15px; display: flex; flex-direction: column; overflow: hidden;">
+                    <h2 class="panel-title" style="margin-bottom: 10px; padding-bottom: 8px; flex-shrink: 0;">✈️ 机票查询</h2>
+                    <div class="form-row" style="align-items: flex-end; flex-shrink: 0; margin-bottom: 10px;">
+                        <div class="form-group">
+                            <label>出发城市</label>
+                            <input type="text" v-model="flightForm.from" placeholder="如：成都">
+                        </div>
+                        <div class="form-group">
+                            <label>到达城市</label>
+                            <input type="text" v-model="flightForm.to" placeholder="如：北京">
+                        </div>
+                        <div class="form-group">
+                            <label>出发日期</label>
+                            <input type="date" v-model="flightForm.date">
+                        </div>
+                        <div class="form-group">
+                            <button class="btn btn-primary" @click="searchFlight" :disabled="flightLoading" style="width: 100%;">查询</button>
+                        </div>
+                    </div>
+                    <div v-if="flightLoading" class="loading" style="flex-shrink: 0;">正在查询机票信息...</div>
+                    <div v-if="flightMsg" style="padding: 10px; color: #666; margin-bottom: 10px; flex-shrink: 0;">[[ flightMsg ]]</div>
+                    <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                        <div v-for="ticket in flightTickets" :key="ticket.flight_no" class="ticket-card" style="padding: 0; margin-bottom: 12px; border: 1px solid #e8e8e8; border-radius: 8px; background: #fff; box-shadow: 0 2px 4px rgba(0,0,0,0.05);">
+                            <div style="background: linear-gradient(135deg, #f093fb 0%, #f5576c 100%); padding: 12px 15px; border-radius: 8px 8px 0 0;">
+                                <div style="display: flex; justify-content: space-between; align-items: center;">
+                                    <div>
+                                        <span style="font-size: 18px; font-weight: bold; color: #fff;">[[ ticket.flight_no ]]</span>
+                                        <span style="font-size: 13px; color: rgba(255,255,255,0.9); margin-left: 10px;">[[ ticket.airline ]]</span>
+                                    </div>
+                                    <span style="font-size: 13px; color: rgba(255,255,255,0.9); background: rgba(255,255,255,0.2); padding: 4px 10px; border-radius: 12px;">[[ ticket.date || '今日' ]]</span>
+                                </div>
+                            </div>
+                            <div style="padding: 15px;">
+                                <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px; padding-bottom: 12px; border-bottom: 1px dashed #e8e8e8;">
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 20px; font-weight: bold; color: #333;">[[ ticket.start_time ]]</div>
+                                        <div style="font-size: 13px; color: #666; margin-top: 4px;">[[ ticket.from ]]</div>
+                                    </div>
+                                    <div style="flex: 1; padding: 0 15px; text-align: center;">
+                                        <div style="font-size: 12px; color: #999;">[[ ticket.duration ]]</div>
+                                        <div style="height: 2px; background: linear-gradient(to right, #f093fb, #f5576c); margin: 6px 0;"></div>
+                                        <div style="font-size: 11px; color: #999;">直飞</div>
+                                    </div>
+                                    <div style="text-align: center;">
+                                        <div style="font-size: 20px; font-weight: bold; color: #333;">[[ ticket.arrive_time ]]</div>
+                                        <div style="font-size: 13px; color: #666; margin-top: 4px;">[[ ticket.to ]]</div>
+                                    </div>
+                                </div>
+                                <div style="margin-bottom: 12px;">
+                                    <div style="font-size: 12px; color: #999; margin-bottom: 8px;">舱位票价</div>
+                                    <div style="display: flex; flex-wrap: wrap; gap: 8px;">
+                                        <span v-for="seat in ticket.seat_types" :key="seat.type" style="display: inline-flex; align-items: center; padding: 6px 12px; background: #f8f9fa; border-radius: 6px; font-size: 13px;">
+                                            <span style="color: #666;">[[ seat.type ]]</span>
+                                            <span style="margin-left: 6px; color: #e74c3c; font-weight: bold;">¥[[ seat.price ]]</span>
+                                            <span style="margin-left: 4px; color: #999; font-size: 12px;">([[ seat.available ]])</span>
+                                        </span>
+                                    </div>
+                                </div>
+                                <button class="btn btn-primary" style="width: 100%; padding: 10px;" @click="bookFlight(ticket)">立即订购</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 数据分析 -->
+            <div v-if="currentTab === 'analysis'" style="display: flex; flex-direction: column; height: 100%;">
+                <div class="panel-inner" style="padding: 15px; display: flex; flex-direction: column; overflow: hidden;">
+                    <h2 class="panel-title" style="margin-bottom: 10px; padding-bottom: 8px; flex-shrink: 0;">📊 数据分析与可视化</h2>
+                    
+                    <div class="nav-tabs" style="padding: 0 0 15px 0; border-bottom: none; flex-shrink: 0;">
+                        <button class="nav-tab" :class="{active: analysisSubTab === 'db'}" @click="analysisSubTab = 'db'; loadDbAnalysis()">📁 数据库分析</button>
+                        <button class="nav-tab" :class="{active: analysisSubTab === 'file'}" @click="analysisSubTab = 'file'">📤 文件上传分析</button>
+                    </div>
+
+                    <div style="flex: 1; overflow-y: auto; min-height: 0;">
+                        <!-- 数据库分析 -->
+                        <div v-if="analysisSubTab === 'db'">
+                            <div class="form-row" style="align-items: flex-end; margin-bottom: 20px;">
+                                <div class="form-group">
+                                    <label>数据源</label>
+                                    <select v-model="dbAnalysisForm.data_source">
+                                        <option value="expense">消费记录</option>
+                                        <option value="schedule">日程记录</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>图表类型</label>
+                                    <select v-model="dbAnalysisForm.chart_type">
+                                        <option value="bar">柱状图</option>
+                                        <option value="line">折线图</option>
+                                        <option value="pie">饼图</option>
+                                        <option value="area">面积图</option>
+                                        <option value="radar">雷达图</option>
+                                        <option value="funnel">漏斗图</option>
+                                        <option value="gauge">仪表盘</option>
+                                        <option value="waterfall">瀑布图</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <label>时间范围</label>
+                                    <select v-model="dbAnalysisForm.time_range">
+                                        <option value="7">近7天</option>
+                                        <option value="30">近30天</option>
+                                        <option value="90">近90天</option>
+                                    </select>
+                                </div>
+                                <div class="form-group">
+                                    <button class="btn btn-primary" @click="analyzeDbData" :disabled="dbAnalysisLoading" style="width: 100%;">生成图表</button>
+                                </div>
+                            </div>
+
+                            <div v-if="dbAnalysisLoading" class="loading">正在分析数据...</div>
+                            
+                            <div v-if="dbAnalysisResult" style="margin-top: 20px;">
+                                <div id="dbChart" style="width: 100%; height: 400px;"></div>
+                                <div v-if="dbAnalysisResult.summary" style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                                    <h4 style="color: #667eea; margin-bottom: 10px;"> 数据分析报告</h4>
+                                    <div v-html="renderMarkdown(dbAnalysisResult.summary)" style="line-height: 1.8; color: #333;"></div>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- 文件上传分析 -->
+                        <div v-if="analysisSubTab === 'file'">
+                            <div style="margin-bottom: 20px;">
+                                <div class="form-group">
+                                    <label>上传数据文件（支持 CSV、Excel）</label>
+                                    <input type="file" ref="fileInput" @change="handleFileUpload" accept=".csv,.xlsx,.xls" style="padding: 10px; border: 2px dashed #667eea; border-radius: 10px; width: 100%; cursor: pointer;">
+                                </div>
+                                <p style="color: #666; font-size: 12px; margin-top: 5px;">支持格式：.csv, .xlsx, .xls（文件大小不超过10MB）</p>
+                            </div>
+
+                            <div v-if="filePreview.length > 0" style="margin-bottom: 20px;">
+                                <h3 class="section-title">📋 数据预览（前5行）</h3>
+                                <div style="overflow-x: auto; border: 1px solid #e0e0e0; border-radius: 8px;">
+                                    <table style="width: 100%; border-collapse: collapse; font-size: 13px;">
+                                        <thead>
+                                            <tr style="background: #f5f5f5;">
+                                                <th v-for="col in fileColumns" :key="col" style="padding: 10px; border-bottom: 2px solid #e0e0e0; text-align: left; color: #333;">[[ col ]]</th>
+                                            </tr>
+                                        </thead>
+                                        <tbody>
+                                            <tr v-for="(row, idx) in filePreview" :key="idx" style="border-bottom: 1px solid #f0f0f0;">
+                                                <td v-for="col in fileColumns" :key="col" style="padding: 8px 10px; color: #666;">[[ row[col] ]]</td>
+                                            </tr>
+                                        </tbody>
+                                    </table>
+                                </div>
+                                <p style="color: #666; font-size: 12px; margin-top: 8px;">共 [[ fileTotalRows ]] 行数据</p>
+                            </div>
+
+                            <div v-if="fileColumns.length > 0" style="margin-bottom: 20px;">
+                                <div class="form-row" style="align-items: flex-end;">
+                                    <div class="form-group">
+                                        <label>X轴字段</label>
+                                        <select v-model="fileAnalysisForm.x_field">
+                                            <option v-for="col in fileColumns" :key="col" :value="col">[[ col ]]</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                        <label>Y轴字段（数值）</label>
+                                        <select v-model="fileAnalysisForm.y_field">
+                                            <option v-for="col in fileColumns" :key="col" :value="col">[[ col ]]</option>
+                                        </select>
+                                    </div>
+                                    <div class="form-group">
+                                            <label>图表类型</label>
+                                            <select v-model="fileAnalysisForm.chart_type">
+                                                <option value="bar">柱状图</option>
+                                                <option value="line">折线图</option>
+                                                <option value="pie">饼图</option>
+                                                <option value="scatter">散点图</option>
+                                                <option value="area">面积图</option>
+                                                <option value="radar">雷达图</option>
+                                                <option value="funnel">漏斗图</option>
+                                                <option value="gauge">仪表盘</option>
+                                                <option value="waterfall">瀑布图</option>
+                                            </select>
+                                        </div>
+                                    <div class="form-group">
+                                        <button class="btn btn-primary" @click="analyzeFileData" :disabled="fileAnalysisLoading" style="width: 100%;">生成图表</button>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div v-if="fileAnalysisLoading" class="loading">正在分析文件数据...</div>
+                            
+                            <div v-if="fileAnalysisResult" style="margin-top: 20px;">
+                                <div id="fileChart" style="width: 100%; height: 400px;"></div>
+                                <div v-if="fileAnalysisResult.summary" style="margin-top: 15px; padding: 15px; background: #f8f9fa; border-radius: 10px;">
+                                    <h4 style="color: #667eea; margin-bottom: 10px;"> 数据分析报告</h4>
+                                    <div v-html="renderMarkdown(fileAnalysisResult.summary)" style="line-height: 1.8; color: #333;"></div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script>
+$(function(){
+    const username = '{{ username }}';
+    const userPhone = '{{ user_phone }}';
+    const storageKey = "qaHistory_" + userPhone;
+
+    new Vue({
+        delimiters: ['[[', ']]'],
+        el: "#app",
+        data: {
+            currentTab: 'qa',
+            username: username,
+            userPhone: userPhone,
+
+            qaHistory: [],
+            currentQAIndex: -1,
+            qaInput: '',
+            qaLoading: false,
+
+            scheduleForm: {
+                title: '',
+                content: '',
+                start_time: '',
+                end_time: '',
+                reminder_type: 'message'
+            },
+            schedules: [],
+            showHistory: false,
+
+            expenseForm: {
+                amount: '',
+                category: '餐饮',
+                description: '',
+                expense_date: new Date().toISOString().split('T')[0],
+                income_type: 'expense'
+            },
+            expenses: [],
+            expenseStats: { total_expense: 0, total_income: 0, expense_category_stats: {}, income_category_stats: {} },
+            
+            expenseCategories: ['餐饮', '交通', '购物', '娱乐', '医疗', '教育', '住房', '其他'],
+            incomeCategories: ['工资', '兼职', '投资', '奖金', '红包', '其他'],
+
+            translateForm: {
+                text: '',
+                source_lang: 'zh',
+                target_lang: 'en'
+            },
+            translateResult: '',
+            translateLoading: false,
+
+            trainForm: {
+                from: '',
+                to: '',
+                date: new Date().toISOString().split('T')[0]
+            },
+            trainTickets: [],
+            trainMsg: '',
+            trainLoading: false,
+
+            flightForm: {
+                from: '',
+                to: '',
+                date: new Date().toISOString().split('T')[0]
+            },
+            flightTickets: [],
+            flightMsg: '',
+            flightLoading: false,
+
+            analysisSubTab: 'db',
+            dbAnalysisForm: {
+                data_source: 'expense',
+                chart_type: 'bar',
+                time_range: '30'
+            },
+            dbAnalysisLoading: false,
+            dbAnalysisResult: null,
+            dbChartInstance: null,
+
+            fileAnalysisForm: {
+                x_field: '',
+                y_field: '',
+                chart_type: 'bar'
+            },
+            fileAnalysisLoading: false,
+            fileAnalysisResult: null,
+            fileColumns: [],
+            filePreview: [],
+            fileTotalRows: 0,
+            fileChartInstance: null,
+            uploadedFileData: null
+        },
+        computed: {
+            currentQAMessages() {
+                if (this.currentQAIndex >= 0 && this.currentQAIndex < this.qaHistory.length) {
+                    return this.qaHistory[this.currentQAIndex].messages || [];
+                }
+                return [];
+            },
+            currentCategories() {
+                return this.expenseForm.income_type === 'income' ? this.incomeCategories : this.expenseCategories;
+            },
+            balanceAmount() {
+                return (this.expenseStats.total_income || 0) - (this.expenseStats.total_expense || 0);
+            },
+            isBalancePositive() {
+                return this.balanceAmount >= 0;
+            }
+        },
+        created() {
+            const saved = localStorage.getItem(storageKey);
+            if (saved) {
+                try {
+                    this.qaHistory = JSON.parse(saved);
+                } catch(e) {
+                    this.qaHistory = [];
+                }
+            }
+            if (this.qaHistory.length === 0) {
+                this.newQAChat();
+            } else {
+                this.currentQAIndex = 0;
+            }
+        },
+        mounted() {
+            // 页面加载完成后，重新渲染所有图表
+            this.$nextTick(() => {
+                this.renderAllCharts();
+            });
+        },
+        methods: {
+            renderMarkdown(text) {
+                if (!text) return '';
+                try {
+                    return marked.parse(text, { breaks: true, gfm: true });
+                } catch (e) {
+                    return text;
+                }
+            },
+
+            saveQAHistory() {
+                localStorage.setItem(storageKey, JSON.stringify(this.qaHistory));
+            },
+
+            newQAChat() {
+                const newChat = {
+                    title: '新对话 ' + new Date().toLocaleString(),
+                    messages: [],
+                    createdAt: Date.now()
+                };
+                this.qaHistory.unshift(newChat);
+                this.currentQAIndex = 0;
+                this.saveQAHistory();
+            },
+
+            loadQAChat(index) {
+                this.currentQAIndex = index;
+                this.$nextTick(() => {
+                    this.renderAllCharts();
+                });
+            },
+
+            deleteQAChat(index) {
+                if (!confirm('确定删除此对话？')) return;
+                this.qaHistory.splice(index, 1);
+                this.saveQAHistory();
+                if (this.qaHistory.length === 0) {
+                    this.newQAChat();
+                } else if (this.currentQAIndex >= this.qaHistory.length) {
+                    this.currentQAIndex = this.qaHistory.length - 1;
+                }
+            },
+
+            sendQA() {
+                if (!this.qaInput.trim() || this.qaLoading) return;
+                const question = this.qaInput.trim();
+                this.qaInput = '';
+
+                if (this.currentQAIndex < 0 || this.currentQAIndex >= this.qaHistory.length) {
+                    this.newQAChat();
+                }
+
+                this.qaHistory[this.currentQAIndex].messages.push({ type: 'user', text: question });
+                
+                if (this.qaHistory[this.currentQAIndex].messages.length === 1) {
+                    this.qaHistory[this.currentQAIndex].title = question.substring(0, 20) + (question.length > 20 ? '...' : '');
+                }
+                
+                this.saveQAHistory();
+                this.qaLoading = true;
+
+                this.$nextTick(() => {
+                    const box = document.getElementById('qaChatBox');
+                    if (box) box.scrollTop = box.scrollHeight;
+                });
+
+                $.ajax({
+                    url: '/smart_qa/',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        question: question,
+                        user_phone: this.userPhone
+                    }),
+                    success: (res) => {
+                        if (res.success) {
+                            const msgData = { type: 'assistant', text: res.answer };
+                            if (res.chart_data && res.chart_data.success) {
+                                msgData.chart = res.chart_data.data;
+                            }
+                            this.qaHistory[this.currentQAIndex].messages.push(msgData);
+                            this.qaLoading = false;
+                            this.saveQAHistory();
+                            this.$nextTick(() => {
+                                const box = document.getElementById('qaChatBox');
+                                if (box) box.scrollTop = box.scrollHeight;
+                                // 渲染图表
+                                if (msgData.chart) {
+                                    const msgIdx = this.qaHistory[this.currentQAIndex].messages.length - 1;
+                                    this.renderQAChart(msgIdx, msgData.chart);
+                                }
+                            });
+                        } else {
+                            this.qaHistory[this.currentQAIndex].messages.push({ type: 'assistant', text: '抱歉，回答失败：' + res.msg });
+                            this.qaLoading = false;
+                            this.saveQAHistory();
+                            this.$nextTick(() => {
+                                const box = document.getElementById('qaChatBox');
+                                if (box) box.scrollTop = box.scrollHeight;
+                            });
+                        }
+                    },
+                    error: () => {
+                        this.qaHistory[this.currentQAIndex].messages.push({ type: 'assistant', text: '请求失败，请重试' });
+                        this.qaLoading = false;
+                        this.saveQAHistory();
+                    }
+                });
+            },
+
+            loadSchedules() {
+                const days = this.showHistory ? -30 : 30;
+                $.get('/schedule/list/', { user_phone: this.userPhone, days: days }, (res) => {
+                    if (res.success) {
+                        this.schedules = res.schedules || [];
+                    } else {
+                        console.error('加载日程失败:', res.msg);
+                    }
+                }).fail((xhr) => {
+                    console.error('请求失败:', xhr.statusText);
+                });
+            },
+
+            toggleHistoryView() {
+                this.showHistory = !this.showHistory;
+                this.loadSchedules();
+            },
+
+            addSchedule() {
+                if (!this.scheduleForm.title || !this.scheduleForm.start_time) {
+                    alert('请填写日程标题和开始时间');
+                    return;
+                }
+                $.ajax({
+                    url: '/schedule/add/',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        user_phone: this.userPhone,
+                        ...this.scheduleForm
+                    }),
+                    success: (res) => {
+                        if (res.success) {
+                            alert('日程添加成功');
+                            this.scheduleForm = { title: '', content: '', start_time: '', end_time: '', reminder_type: 'message' };
+                            this.loadSchedules();
+                        } else {
+                            alert('添加失败：' + res.msg);
+                        }
+                    }
+                });
+            },
+
+            deleteSchedule(id) {
+                if (!confirm('确定删除此日程？')) return;
+                $.ajax({
+                    url: '/schedule/delete/',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({ user_phone: this.userPhone, id: id }),
+                    success: (res) => {
+                        if (res.success) {
+                            this.loadSchedules();
+                        } else {
+                            alert('删除失败：' + res.msg);
+                        }
+                    }
+                });
+            },
+
+            loadExpenses() {
+                const month = new Date().toISOString().slice(0, 7);
+                $.get('/expense/list/', { user_phone: this.userPhone, month: month }, (res) => {
+                    if (res.success) {
+                        this.expenses = res.expenses || [];
+                        this.expenseStats = { 
+                            total_expense: res.total_expense || 0, 
+                            total_income: res.total_income || 0,
+                            expense_category_stats: res.expense_category_stats || {},
+                            income_category_stats: res.income_category_stats || {}
+                        };
+                    }
+                });
+            },
+
+            addExpense() {
+                if (!this.expenseForm.amount) {
+                    alert('请输入金额');
+                    return;
+                }
+                $.ajax({
+                    url: '/expense/add/',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        user_phone: this.userPhone,
+                        ...this.expenseForm
+                    }),
+                    success: (res) => {
+                        if (res.success) {
+                            alert(this.expenseForm.income_type === 'income' ? '收入记录成功' : '记账成功');
+                            this.expenseForm = { 
+                                amount: '', 
+                                category: this.expenseForm.income_type === 'income' ? '工资' : '餐饮', 
+                                description: '', 
+                                expense_date: new Date().toISOString().split('T')[0],
+                                income_type: this.expenseForm.income_type
+                            };
+                            this.loadExpenses();
+                        } else {
+                            alert('记录失败：' + res.msg);
+                        }
+                    }
+                });
+            },
+
+            deleteExpense(id) {
+                if (!confirm('确定要删除这条消费记录吗？')) {
+                    return;
+                }
+                $.ajax({
+                    url: '/expense/delete/',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        user_phone: this.userPhone,
+                        expense_id: id
+                    }),
+                    success: (res) => {
+                        if (res.success) {
+                            alert('删除成功');
+                            this.loadExpenses();
+                        } else {
+                            alert('删除失败：' + res.msg);
+                        }
+                    },
+                    error: () => {
+                        alert('请求失败');
+                    }
+                });
+            },
+
+            doTranslate() {
+                if (!this.translateForm.text.trim()) {
+                    alert('请输入要翻译的文本');
+                    return;
+                }
+                this.translateLoading = true;
+                $.ajax({
+                    url: '/translate/',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        ...this.translateForm,
+                        user_phone: this.userPhone
+                    }),
+                    success: (res) => {
+                        if (res.success) {
+                            this.translateResult = res.translated;
+                        } else {
+                            alert('翻译失败：' + res.msg);
+                        }
+                        this.translateLoading = false;
+                    },
+                    error: () => {
+                        alert('请求失败');
+                        this.translateLoading = false;
+                    }
+                });
+            },
+
+            searchTrain() {
+                if (!this.trainForm.from || !this.trainForm.to) {
+                    alert('请填写出发站和到达站');
+                    return;
+                }
+                this.trainLoading = true;
+                this.trainMsg = '';
+                this.trainTickets = [];
+                $.get('/train_ticket/', this.trainForm, (res) => {
+                    if (res.success) {
+                        this.trainTickets = res.tickets || [];
+                        this.trainMsg = res.msg || '';
+                    } else {
+                        alert('查询失败：' + res.msg);
+                    }
+                    this.trainLoading = false;
+                });
+            },
+
+            bookTicket(ticket) {
+                window.open(`https://www.12306.cn/index/`, '_blank');
+            },
+
+            bookFlight(ticket) {
+                window.open(`https://www.12306.cn/index/`, '_blank');
+            },
+
+            searchFlight() {
+                if (!this.flightForm.from || !this.flightForm.to) {
+                    alert('请填写出发城市和到达城市');
+                    return;
+                }
+                this.flightLoading = true;
+                this.flightMsg = '';
+                this.flightTickets = [];
+                $.get('/flight_ticket/', this.flightForm, (res) => {
+                    if (res.success) {
+                        this.flightTickets = res.tickets || [];
+                        this.flightMsg = res.msg || '';
+                    } else {
+                        alert('查询失败：' + res.msg);
+                    }
+                    this.flightLoading = false;
+                });
+            },
+
+            initDataAnalysis() {
+                this.loadDbAnalysis();
+            },
+
+            loadDbAnalysis() {
+                // 初始化数据库分析
+            },
+
+            analyzeDbData() {
+                this.dbAnalysisLoading = true;
+                this.dbAnalysisResult = null;
+                $.ajax({
+                    url: '/data_analysis/db/',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        user_phone: this.userPhone,
+                        ...this.dbAnalysisForm
+                    }),
+                    success: (res) => {
+                        if (res.success) {
+                            this.dbAnalysisResult = res.data;
+                            this.$nextTick(() => {
+                                this.renderDbChart(res.data, this.dbAnalysisForm.chart_type);
+                            });
+                        } else {
+                            alert('分析失败：' + res.msg);
+                        }
+                        this.dbAnalysisLoading = false;
+                    },
+                    error: () => {
+                        alert('请求失败');
+                        this.dbAnalysisLoading = false;
+                    }
+                });
+            },
+
+            renderDbChart(data, chartType) {
+                const chartDom = document.getElementById('dbChart');
+                if (!chartDom) return;
+                
+                if (this.dbChartInstance) {
+                    this.dbChartInstance.dispose();
+                }
+                
+                this.dbChartInstance = echarts.init(chartDom);
+                
+                let option = {};
+                
+                if (chartType === 'bar') {
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'axis' },
+                        xAxis: { type: 'category', data: data.x_data, axisLabel: { rotate: 30 } },
+                        yAxis: { type: 'value' },
+                        series: [{
+                            name: data.y_label || '数值',
+                            type: 'bar',
+                            data: data.y_data,
+                            itemStyle: { color: '#667eea' }
+                        }],
+                        grid: { bottom: 80 }
+                    };
+                } else if (chartType === 'line') {
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'axis' },
+                        xAxis: { type: 'category', data: data.x_data, axisLabel: { rotate: 30 } },
+                        yAxis: { type: 'value' },
+                        series: [{
+                            name: data.y_label || '数值',
+                            type: 'line',
+                            data: data.y_data,
+                            smooth: true,
+                            itemStyle: { color: '#667eea' }
+                        }],
+                        grid: { bottom: 80 }
+                    };
+                } else if (chartType === 'area') {
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'axis' },
+                        xAxis: { type: 'category', data: data.x_data, axisLabel: { rotate: 30 } },
+                        yAxis: { type: 'value' },
+                        series: [{
+                            name: data.y_label || '数值',
+                            type: 'line',
+                            data: data.y_data,
+                            smooth: true,
+                            itemStyle: { color: '#667eea' },
+                            areaStyle: {
+                                color: {
+                                    type: 'linear',
+                                    x: 0, y: 0, x2: 0, y2: 1,
+                                    colorStops: [
+                                        { offset: 0, color: 'rgba(102, 126, 234, 0.5)' },
+                                        { offset: 1, color: 'rgba(102, 126, 234, 0.1)' }
+                                    ]
+                                }
+                            }
+                        }],
+                        grid: { bottom: 80 }
+                    };
+                } else if (chartType === 'pie') {
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'item' },
+                        legend: { orient: 'vertical', left: 'left' },
+                        series: [{
+                            type: 'pie',
+                            radius: ['40%', '70%'],
+                            avoidLabelOverlap: false,
+                            itemStyle: {
+                                borderRadius: 10,
+                                borderColor: '#fff',
+                                borderWidth: 2
+                            },
+                            data: data.x_data.map((name, i) => ({
+                                name: name,
+                                value: data.y_data[i]
+                            })),
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                }
+                            }
+                        }]
+                    };
+                } else if (chartType === 'radar') {
+                    const maxValue = Math.max(...data.y_data);
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'item' },
+                        legend: { orient: 'vertical', left: 'left' },
+                        radar: {
+                            indicator: data.x_data.map(name => ({ name: name, max: maxValue * 1.2 })),
+                            shape: 'circle',
+                            splitNumber: 5,
+                            axisName: {
+                                color: '#333'
+                            },
+                            splitLine: {
+                                lineStyle: {
+                                    color: [
+                                        'rgba(102, 126, 234, 0.1)',
+                                        'rgba(102, 126, 234, 0.2)',
+                                        'rgba(102, 126, 234, 0.4)',
+                                        'rgba(102, 126, 234, 0.6)',
+                                        'rgba(102, 126, 234, 0.8)'
+                                    ].reverse()
+                                }
+                            }
+                        },
+                        series: [{
+                            type: 'radar',
+                            data: [{
+                                value: data.y_data,
+                                name: data.y_label || '数值',
+                                areaStyle: {
+                                    color: 'rgba(102, 126, 234, 0.3)'
+                                },
+                                itemStyle: {
+                                    color: '#667eea'
+                                }
+                            }]
+                        }]
+                    };
+                } else if (chartType === 'funnel') {
+                    const sortedData = data.x_data.map((name, i) => ({
+                        name: name,
+                        value: data.y_data[i]
+                    })).sort((a, b) => b.value - a.value);
+                    
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+                        legend: { orient: 'vertical', left: 'left' },
+                        series: [{
+                            type: 'funnel',
+                            left: '10%',
+                            top: 60,
+                            bottom: 60,
+                            width: '80%',
+                            min: 0,
+                            max: sortedData[0]?.value || 100,
+                            minSize: '0%',
+                            maxSize: '100%',
+                            sort: 'descending',
+                            gap: 2,
+                            label: {
+                                show: true,
+                                position: 'inside'
+                            },
+                            itemStyle: {
+                                borderColor: '#fff',
+                                borderWidth: 1
+                            },
+                            data: sortedData
+                        }]
+                    };
+                } else if (chartType === 'gauge') {
+                    const total = data.y_data.reduce((a, b) => a + b, 0);
+                    const gaugeData = data.x_data.map((name, i) => ({
+                        name: name,
+                        value: ((data.y_data[i] / total) * 100).toFixed(1)
+                    }));
+                    
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { formatter: '{b}: {d}%' },
+                        legend: { orient: 'vertical', left: 'left' },
+                        series: [{
+                            type: 'pie',
+                            radius: ['50%', '70%'],
+                            avoidLabelOverlap: false,
+                            label: {
+                                show: true,
+                                formatter: '{b}\n{d}%'
+                            },
+                            data: gaugeData.map(item => ({
+                                name: item.name,
+                                value: parseFloat(item.value)
+                            }))
+                        }]
+                    };
+                } else if (chartType === 'waterfall') {
+                    const positiveData = data.y_data.map(v => v > 0 ? v : 0);
+                    const negativeData = data.y_data.map(v => v < 0 ? Math.abs(v) : 0);
+                    const transparentData = data.y_data.map((v, i) => {
+                        if (i === 0) return 0;
+                        let sum = 0;
+                        for (let j = 0; j < i; j++) {
+                            sum += data.y_data[j];
+                        }
+                        return sum > 0 ? sum : 0;
+                    });
+                    
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                        xAxis: { type: 'category', data: data.x_data, axisLabel: { rotate: 30 } },
+                        yAxis: { type: 'value' },
+                        series: [
+                            {
+                                name: '辅助',
+                                type: 'bar',
+                                stack: '总量',
+                                itemStyle: {
+                                    barBorderColor: 'rgba(0,0,0,0)',
+                                    color: 'rgba(0,0,0,0)'
+                                },
+                                emphasis: {
+                                    itemStyle: {
+                                        barBorderColor: 'rgba(0,0,0,0)',
+                                        color: 'rgba(0,0,0,0)'
+                                    }
+                                },
+                                data: transparentData
+                            },
+                            {
+                                name: '收入',
+                                type: 'bar',
+                                stack: '总量',
+                                itemStyle: { color: '#667eea' },
+                                data: positiveData
+                            },
+                            {
+                                name: '支出',
+                                type: 'bar',
+                                stack: '总量',
+                                itemStyle: { color: '#ff6b6b' },
+                                data: negativeData
+                            }
+                        ],
+                        grid: { bottom: 80 }
+                    };
+                }
+                
+                this.dbChartInstance.setOption(option);
+                window.addEventListener('resize', () => {
+                    this.dbChartInstance.resize();
+                });
+            },
+
+            handleFileUpload(event) {
+                const file = event.target.files[0];
+                if (!file) return;
+                
+                if (file.size > 10 * 1024 * 1024) {
+                    alert('文件大小不能超过10MB');
+                    return;
+                }
+                
+                const formData = new FormData();
+                formData.append('file', file);
+                
+                this.fileColumns = [];
+                this.filePreview = [];
+                this.fileTotalRows = 0;
+                this.fileAnalysisResult = null;
+                
+                $.ajax({
+                    url: '/data_analysis/upload/',
+                    type: 'POST',
+                    data: formData,
+                    processData: false,
+                    contentType: false,
+                    success: (res) => {
+                        if (res.success) {
+                            this.fileColumns = res.columns || [];
+                            this.filePreview = res.preview || [];
+                            this.fileTotalRows = res.total_rows || 0;
+                            this.uploadedFileData = res.file_path;
+                            if (this.fileColumns.length > 0) {
+                                this.fileAnalysisForm.x_field = this.fileColumns[0];
+                                if (this.fileColumns.length > 1) {
+                                    this.fileAnalysisForm.y_field = this.fileColumns[1];
+                                }
+                            }
+                        } else {
+                            alert('文件解析失败：' + res.msg);
+                        }
+                    },
+                    error: () => {
+                        alert('文件上传失败');
+                    }
+                });
+            },
+
+            analyzeFileData() {
+                if (!this.fileAnalysisForm.x_field || !this.fileAnalysisForm.y_field) {
+                    alert('请选择X轴和Y轴字段');
+                    return;
+                }
+                
+                this.fileAnalysisLoading = true;
+                this.fileAnalysisResult = null;
+                
+                $.ajax({
+                    url: '/data_analysis/file/',
+                    type: 'POST',
+                    contentType: 'application/json',
+                    data: JSON.stringify({
+                        file_path: this.uploadedFileData,
+                        x_field: this.fileAnalysisForm.x_field,
+                        y_field: this.fileAnalysisForm.y_field,
+                        chart_type: this.fileAnalysisForm.chart_type
+                    }),
+                    success: (res) => {
+                        if (res.success) {
+                            this.fileAnalysisResult = res.data;
+                            this.$nextTick(() => {
+                                this.renderFileChart(res.data, this.fileAnalysisForm.chart_type);
+                            });
+                        } else {
+                            alert('分析失败：' + res.msg);
+                        }
+                        this.fileAnalysisLoading = false;
+                    },
+                    error: () => {
+                        alert('请求失败');
+                        this.fileAnalysisLoading = false;
+                    }
+                });
+            },
+
+            renderFileChart(data, chartType) {
+                const chartDom = document.getElementById('fileChart');
+                if (!chartDom) return;
+                
+                if (this.fileChartInstance) {
+                    this.fileChartInstance.dispose();
+                }
+                
+                this.fileChartInstance = echarts.init(chartDom);
+                
+                let option = {};
+                
+                if (chartType === 'bar') {
+                    option = {
+                        title: { text: data.title || '文件数据分析', left: 'center' },
+                        tooltip: { trigger: 'axis' },
+                        xAxis: { type: 'category', data: data.x_data, axisLabel: { rotate: 30 } },
+                        yAxis: { type: 'value' },
+                        series: [{
+                            name: data.y_label || '数值',
+                            type: 'bar',
+                            data: data.y_data,
+                            itemStyle: { color: '#667eea' }
+                        }],
+                        grid: { bottom: 80 }
+                    };
+                } else if (chartType === 'line') {
+                    option = {
+                        title: { text: data.title || '文件数据分析', left: 'center' },
+                        tooltip: { trigger: 'axis' },
+                        xAxis: { type: 'category', data: data.x_data, axisLabel: { rotate: 30 } },
+                        yAxis: { type: 'value' },
+                        series: [{
+                            name: data.y_label || '数值',
+                            type: 'line',
+                            data: data.y_data,
+                            smooth: true,
+                            itemStyle: { color: '#667eea' }
+                        }],
+                        grid: { bottom: 80 }
+                    };
+                } else if (chartType === 'area') {
+                    option = {
+                        title: { text: data.title || '文件数据分析', left: 'center' },
+                        tooltip: { trigger: 'axis' },
+                        xAxis: { type: 'category', data: data.x_data, axisLabel: { rotate: 30 } },
+                        yAxis: { type: 'value' },
+                        series: [{
+                            name: data.y_label || '数值',
+                            type: 'line',
+                            data: data.y_data,
+                            smooth: true,
+                            itemStyle: { color: '#667eea' },
+                            areaStyle: {
+                                color: {
+                                    type: 'linear',
+                                    x: 0, y: 0, x2: 0, y2: 1,
+                                    colorStops: [
+                                        { offset: 0, color: 'rgba(102, 126, 234, 0.5)' },
+                                        { offset: 1, color: 'rgba(102, 126, 234, 0.1)' }
+                                    ]
+                                }
+                            }
+                        }],
+                        grid: { bottom: 80 }
+                    };
+                } else if (chartType === 'pie') {
+                    option = {
+                        title: { text: data.title || '文件数据分析', left: 'center' },
+                        tooltip: { trigger: 'item' },
+                        legend: { orient: 'vertical', left: 'left' },
+                        series: [{
+                            type: 'pie',
+                            radius: ['40%', '70%'],
+                            avoidLabelOverlap: false,
+                            itemStyle: {
+                                borderRadius: 10,
+                                borderColor: '#fff',
+                                borderWidth: 2
+                            },
+                            data: data.x_data.map((name, i) => ({
+                                name: name,
+                                value: data.y_data[i]
+                            })),
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                }
+                            }
+                        }]
+                    };
+                } else if (chartType === 'scatter') {
+                    option = {
+                        title: { text: data.title || '文件数据分析', left: 'center' },
+                        tooltip: { trigger: 'item' },
+                        xAxis: { type: 'category', data: data.x_data, axisLabel: { rotate: 30 } },
+                        yAxis: { type: 'value' },
+                        series: [{
+                            name: data.y_label || '数值',
+                            type: 'scatter',
+                            data: data.y_data,
+                            itemStyle: { color: '#667eea' },
+                            symbolSize: 10
+                        }],
+                        grid: { bottom: 80 }
+                    };
+                } else if (chartType === 'radar') {
+                    const maxValue = Math.max(...data.y_data);
+                    option = {
+                        title: { text: data.title || '文件数据分析', left: 'center' },
+                        tooltip: { trigger: 'item' },
+                        legend: { orient: 'vertical', left: 'left' },
+                        radar: {
+                            indicator: data.x_data.map(name => ({ name: name, max: maxValue * 1.2 })),
+                            shape: 'circle',
+                            splitNumber: 5,
+                            axisName: { color: '#333' },
+                            splitLine: {
+                                lineStyle: {
+                                    color: [
+                                        'rgba(102, 126, 234, 0.1)',
+                                        'rgba(102, 126, 234, 0.2)',
+                                        'rgba(102, 126, 234, 0.4)',
+                                        'rgba(102, 126, 234, 0.6)',
+                                        'rgba(102, 126, 234, 0.8)'
+                                    ].reverse()
+                                }
+                            }
+                        },
+                        series: [{
+                            type: 'radar',
+                            data: [{
+                                value: data.y_data,
+                                name: data.y_label || '数值',
+                                areaStyle: { color: 'rgba(102, 126, 234, 0.3)' },
+                                itemStyle: { color: '#667eea' }
+                            }]
+                        }]
+                    };
+                } else if (chartType === 'funnel') {
+                    const sortedData = data.x_data.map((name, i) => ({
+                        name: name,
+                        value: data.y_data[i]
+                    })).sort((a, b) => b.value - a.value);
+                    
+                    option = {
+                        title: { text: data.title || '文件数据分析', left: 'center' },
+                        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+                        legend: { orient: 'vertical', left: 'left' },
+                        series: [{
+                            type: 'funnel',
+                            left: '10%',
+                            top: 60,
+                            bottom: 60,
+                            width: '80%',
+                            min: 0,
+                            max: sortedData[0]?.value || 100,
+                            minSize: '0%',
+                            maxSize: '100%',
+                            sort: 'descending',
+                            gap: 2,
+                            label: { show: true, position: 'inside' },
+                            itemStyle: { borderColor: '#fff', borderWidth: 1 },
+                            data: sortedData
+                        }]
+                    };
+                } else if (chartType === 'gauge') {
+                    const total = data.y_data.reduce((a, b) => a + b, 0);
+                    const gaugeData = data.x_data.map((name, i) => ({
+                        name: name,
+                        value: ((data.y_data[i] / total) * 100).toFixed(1)
+                    }));
+                    
+                    option = {
+                        title: { text: data.title || '文件数据分析', left: 'center' },
+                        tooltip: { formatter: '{b}: {d}%' },
+                        legend: { orient: 'vertical', left: 'left' },
+                        series: [{
+                            type: 'pie',
+                            radius: ['50%', '70%'],
+                            avoidLabelOverlap: false,
+                            label: { show: true, formatter: '{b}\n{d}%' },
+                            data: gaugeData.map(item => ({
+                                name: item.name,
+                                value: parseFloat(item.value)
+                            }))
+                        }]
+                    };
+                } else if (chartType === 'waterfall') {
+                    const positiveData = data.y_data.map(v => v > 0 ? v : 0);
+                    const negativeData = data.y_data.map(v => v < 0 ? Math.abs(v) : 0);
+                    const transparentData = data.y_data.map((v, i) => {
+                        if (i === 0) return 0;
+                        let sum = 0;
+                        for (let j = 0; j < i; j++) {
+                            sum += data.y_data[j];
+                        }
+                        return sum > 0 ? sum : 0;
+                    });
+                    
+                    option = {
+                        title: { text: data.title || '文件数据分析', left: 'center' },
+                        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                        xAxis: { type: 'category', data: data.x_data, axisLabel: { rotate: 30 } },
+                        yAxis: { type: 'value' },
+                        series: [
+                            {
+                                name: '辅助',
+                                type: 'bar',
+                                stack: '总量',
+                                itemStyle: { barBorderColor: 'rgba(0,0,0,0)', color: 'rgba(0,0,0,0)' },
+                                emphasis: { itemStyle: { barBorderColor: 'rgba(0,0,0,0)', color: 'rgba(0,0,0,0)' } },
+                                data: transparentData
+                            },
+                            {
+                                name: '收入',
+                                type: 'bar',
+                                stack: '总量',
+                                itemStyle: { color: '#667eea' },
+                                data: positiveData
+                            },
+                            {
+                                name: '支出',
+                                type: 'bar',
+                                stack: '总量',
+                                itemStyle: { color: '#ff6b6b' },
+                                data: negativeData
+                            }
+                        ],
+                        grid: { bottom: 80 }
+                    };
+                }
+                
+                this.fileChartInstance.setOption(option);
+                window.addEventListener('resize', () => {
+                    this.fileChartInstance.resize();
+                });
+            },
+
+            renderQAChart(msgIdx, data) {
+                const chartId = 'qaChart-' + msgIdx;
+                const chartDom = document.getElementById(chartId);
+                if (!chartDom || !data) return;
+                
+                const chartType = data.chart_type || 'bar';
+                
+                let option = {};
+                
+                if (chartType === 'bar') {
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'axis' },
+                        xAxis: { type: 'category', data: data.x_data, axisLabel: { rotate: 30 } },
+                        yAxis: { type: 'value' },
+                        series: [{
+                            name: data.y_label || '数值',
+                            type: 'bar',
+                            data: data.y_data,
+                            itemStyle: { color: '#667eea' }
+                        }],
+                        grid: { bottom: 80 }
+                    };
+                } else if (chartType === 'line') {
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'axis' },
+                        xAxis: { type: 'category', data: data.x_data, axisLabel: { rotate: 30 } },
+                        yAxis: { type: 'value' },
+                        series: [{
+                            name: data.y_label || '数值',
+                            type: 'line',
+                            data: data.y_data,
+                            smooth: true,
+                            itemStyle: { color: '#667eea' }
+                        }],
+                        grid: { bottom: 80 }
+                    };
+                } else if (chartType === 'area') {
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'axis' },
+                        xAxis: { type: 'category', data: data.x_data, axisLabel: { rotate: 30 } },
+                        yAxis: { type: 'value' },
+                        series: [{
+                            name: data.y_label || '数值',
+                            type: 'line',
+                            data: data.y_data,
+                            smooth: true,
+                            itemStyle: { color: '#667eea' },
+                            areaStyle: {
+                                color: {
+                                    type: 'linear',
+                                    x: 0, y: 0, x2: 0, y2: 1,
+                                    colorStops: [
+                                        { offset: 0, color: 'rgba(102, 126, 234, 0.5)' },
+                                        { offset: 1, color: 'rgba(102, 126, 234, 0.1)' }
+                                    ]
+                                }
+                            }
+                        }],
+                        grid: { bottom: 80 }
+                    };
+                } else if (chartType === 'pie') {
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'item' },
+                        legend: { orient: 'vertical', left: 'left' },
+                        series: [{
+                            type: 'pie',
+                            radius: ['40%', '70%'],
+                            avoidLabelOverlap: false,
+                            itemStyle: {
+                                borderRadius: 10,
+                                borderColor: '#fff',
+                                borderWidth: 2
+                            },
+                            data: data.x_data.map((name, i) => ({
+                                name: name,
+                                value: data.y_data[i]
+                            })),
+                            emphasis: {
+                                itemStyle: {
+                                    shadowBlur: 10,
+                                    shadowOffsetX: 0,
+                                    shadowColor: 'rgba(0, 0, 0, 0.5)'
+                                }
+                            }
+                        }]
+                    };
+                } else if (chartType === 'radar') {
+                    const maxValue = Math.max(...data.y_data);
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'item' },
+                        legend: { orient: 'vertical', left: 'left' },
+                        radar: {
+                            indicator: data.x_data.map(name => ({ name: name, max: maxValue * 1.2 })),
+                            shape: 'circle',
+                            splitNumber: 5,
+                            axisName: { color: '#333' },
+                            splitLine: {
+                                lineStyle: {
+                                    color: [
+                                        'rgba(102, 126, 234, 0.1)',
+                                        'rgba(102, 126, 234, 0.2)',
+                                        'rgba(102, 126, 234, 0.4)',
+                                        'rgba(102, 126, 234, 0.6)',
+                                        'rgba(102, 126, 234, 0.8)'
+                                    ].reverse()
+                                }
+                            }
+                        },
+                        series: [{
+                            type: 'radar',
+                            data: [{
+                                value: data.y_data,
+                                name: data.y_label || '数值',
+                                areaStyle: { color: 'rgba(102, 126, 234, 0.3)' },
+                                itemStyle: { color: '#667eea' }
+                            }]
+                        }]
+                    };
+                } else if (chartType === 'funnel') {
+                    const sortedData = data.x_data.map((name, i) => ({
+                        name: name,
+                        value: data.y_data[i]
+                    })).sort((a, b) => b.value - a.value);
+                    
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'item', formatter: '{b}: {c} ({d}%)' },
+                        legend: { orient: 'vertical', left: 'left' },
+                        series: [{
+                            type: 'funnel',
+                            left: '10%',
+                            top: 60,
+                            bottom: 60,
+                            width: '80%',
+                            min: 0,
+                            max: sortedData[0]?.value || 100,
+                            minSize: '0%',
+                            maxSize: '100%',
+                            sort: 'descending',
+                            gap: 2,
+                            label: { show: true, position: 'inside' },
+                            itemStyle: { borderColor: '#fff', borderWidth: 1 },
+                            data: sortedData
+                        }]
+                    };
+                } else if (chartType === 'gauge') {
+                    // 使用真正的仪表盘类型
+                    const total = data.y_data.reduce((a, b) => a + b, 0);
+                    const gaugeData = data.x_data.map((name, i) => ({
+                        name: name,
+                        value: ((data.y_data[i] / total) * 100).toFixed(1)
+                    }));
+                    
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { formatter: '{b}: {d}%' },
+                        legend: { orient: 'vertical', left: 'left' },
+                        series: gaugeData.map((item, index) => ({
+                            type: 'gauge',
+                            center: index % 2 === 0 ? ['25%', '50%'] : ['75%', '50%'],
+                            radius: '60%',
+                            startAngle: 220,
+                            endAngle: -40,
+                            min: 0,
+                            max: 100,
+                            splitNumber: 10,
+                            itemStyle: {
+                                color: ['#667eea', '#764ba2', '#f093fb', '#f5576c', '#4facfe', '#00f2fe', '#43e97b', '#fa709a'][index % 8]
+                            },
+                            progress: {
+                                show: true,
+                                width: 18
+                            },
+                            axisLine: {
+                                lineStyle: {
+                                    width: 18
+                                }
+                            },
+                            axisTick: {
+                                distance: -25,
+                                splitNumber: 5,
+                                lineStyle: {
+                                    width: 2,
+                                    color: '#999'
+                                }
+                            },
+                            splitLine: {
+                                distance: -32,
+                                length: 14,
+                                lineStyle: {
+                                    width: 3,
+                                    color: '#999'
+                                }
+                            },
+                            axisLabel: {
+                                distance: 25,
+                                color: '#999',
+                                fontSize: 12
+                            },
+                            anchor: {
+                                show: true,
+                                showAbove: true,
+                                size: 25,
+                                itemStyle: {
+                                    borderWidth: 10
+                                }
+                            },
+                            pointer: {
+                                length: '60%'
+                            },
+                            detail: {
+                                valueAnimation: true,
+                                fontSize: 20,
+                                offsetCenter: [0, '70%']
+                            },
+                            data: [{
+                                value: parseFloat(item.value),
+                                name: item.name
+                            }]
+                        }))
+                    };
+                } else if (chartType === 'waterfall') {
+                    const positiveData = data.y_data.map(v => v > 0 ? v : 0);
+                    const negativeData = data.y_data.map(v => v < 0 ? Math.abs(v) : 0);
+                    const transparentData = data.y_data.map((v, i) => {
+                        if (i === 0) return 0;
+                        let sum = 0;
+                        for (let j = 0; j < i; j++) {
+                            sum += data.y_data[j];
+                        }
+                        return sum > 0 ? sum : 0;
+                    });
+                    
+                    option = {
+                        title: { text: data.title || '数据分析', left: 'center' },
+                        tooltip: { trigger: 'axis', axisPointer: { type: 'shadow' } },
+                        xAxis: { type: 'category', data: data.x_data, axisLabel: { rotate: 30 } },
+                        yAxis: { type: 'value' },
+                        series: [
+                            {
+                                name: '辅助',
+                                type: 'bar',
+                                stack: '总量',
+                                itemStyle: { borderColor: 'transparent', color: 'transparent' },
+                                emphasis: { itemStyle: { borderColor: 'transparent', color: 'transparent' } },
+                                data: transparentData
+                            },
+                            {
+                                name: '增加',
+                                type: 'bar',
+                                stack: '总量',
+                                itemStyle: { color: '#667eea' },
+                                data: positiveData
+                            },
+                            {
+                                name: '减少',
+                                type: 'bar',
+                                stack: '总量',
+                                itemStyle: { color: '#ff6b6b' },
+                                data: negativeData
+                            }
+                        ],
+                        grid: { bottom: 80 }
+                    };
+                }
+                
+                const chartInstance = echarts.init(chartDom);
+                chartInstance.setOption(option);
+                window.addEventListener('resize', () => {
+                    chartInstance.resize();
+                });
+            },
+
+            renderAllCharts() {
+                // 遍历当前对话的所有消息，重新渲染图表
+                if (this.currentQAIndex < 0 || this.currentQAIndex >= this.qaHistory.length) return;
+                
+                const messages = this.qaHistory[this.currentQAIndex].messages || [];
+                messages.forEach((msg, idx) => {
+                    if (msg.type === 'assistant' && msg.chart) {
+                        this.$nextTick(() => {
+                            this.renderQAChart(idx, msg.chart);
+                        });
+                    }
+                });
+            }
+        }
+    });
+});
+</script>
+</body>
+</html>

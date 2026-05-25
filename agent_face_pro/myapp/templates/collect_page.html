@@ -1,0 +1,238 @@
+{% load static %}
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>人脸采集 - 个人助理与生活服务系统</title>
+    <script src="{% static 'js/jquery.js' %}"></script>
+    <script src="{% static 'js/vue.min.js' %}"></script>
+    <script src="{% static 'js/faceUtil.js' %}"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            padding: 40px;
+            border-radius: 20px;
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.25);
+            width: 100%;
+            max-width: 600px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 35px;
+        }
+
+        .header h1 {
+            font-size: 26px;
+            color: #333;
+            margin-bottom: 10px;
+        }
+
+        .header p {
+            color: #666;
+            font-size: 14px;
+        }
+
+        .header-icon {
+            width: 70px;
+            height: 70px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            border-radius: 50%;
+            margin: 0 auto 15px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 35px;
+            color: white;
+        }
+
+        #video {
+            margin-bottom: 25px;
+            border-radius: 12px;
+            overflow: hidden;
+            background: #f5f5f5;
+            display: flex;
+            justify-content: center;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        .form-group label {
+            display: block;
+            margin-bottom: 8px;
+            color: #555;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .form-group input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #e0e0e0;
+            border-radius: 10px;
+            font-size: 14px;
+            outline: none;
+            transition: all 0.3s;
+        }
+
+        .form-group input:focus {
+            border-color: #667eea;
+            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
+        }
+
+        .form-group input::placeholder {
+            color: #999;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 14px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s;
+            margin-top: 10px;
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 8px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .submit-btn:active {
+            transform: translateY(0);
+        }
+
+        .links {
+            margin-top: 25px;
+            padding-top: 20px;
+            border-top: 1px solid #e0e0e0;
+            text-align: center;
+        }
+
+        .links a {
+            color: #667eea;
+            text-decoration: none;
+            font-size: 14px;
+            display: inline-block;
+            margin: 8px 12px;
+            transition: color 0.3s;
+        }
+
+        .links a:hover {
+            color: #764ba2;
+            text-decoration: underline;
+        }
+
+        .divider {
+            color: #999;
+            margin: 0 5px;
+        }
+    </style>
+</head>
+<body>
+<div class="container" id="Myapp">
+    <div class="header">
+        <div class="header-icon">👤</div>
+        <h1>人脸采集注册</h1>
+        <p>请完善信息并采集人脸完成注册</p>
+    </div>
+
+    <div id="video"></div>
+
+    <div class="form-group">
+        <label>姓名</label>
+        <input type="text" v-model="name" placeholder="请输入您的姓名">
+    </div>
+
+    <div class="form-group">
+        <label>年龄</label>
+        <input type="text" v-model="age" placeholder="请输入您的年龄">
+    </div>
+
+    <div class="form-group">
+        <label>电话</label>
+        <input type="text" v-model="phone" placeholder="请输入11位手机号">
+    </div>
+
+    <div class="form-group">
+        <label>密码</label>
+        <input type="password" v-model="password" placeholder="请输入6-20位密码（英文加数字）">
+    </div>
+
+    <button type="button" class="submit-btn" @click="facecollect">采集人脸注册</button>
+
+    <div class="links">
+        <a href="/detect_page/">人脸登录</a>
+        <span class="divider">|</span>
+        <a href="/login/">账号密码登录</a>
+    </div>
+</div>
+
+<script>
+    new Vue({
+        el: '#Myapp',
+        data: {
+            name: '',
+            age: '',
+            phone: '',
+            password: ''
+        },
+        methods: {
+            facecollect: function () {
+                const code = faceUtile.getDecode();
+                const param = {
+                    name: this.name,
+                    age: this.age,
+                    phone: this.phone,
+                    code: code,
+                    password: this.password
+                }
+                $.ajax({
+                    url: "/face_collect/",
+                    type: "post",
+                    contentType: "application/json",
+                    data: JSON.stringify(param),
+                    success: function(res){
+                        if(res.status_code == 200){
+                            alert("采集成功")
+                        } else {
+                            alert(res.status_msg)
+                        }
+                    },
+                    error: function(){
+                        alert("请求失败")
+                    }
+                })
+            }
+        }
+    })
+    faceUtile.openVideo("video")
+    faceUtile.width = 640
+    faceUtile.height = 480
+</script>
+</body>
+</html>
